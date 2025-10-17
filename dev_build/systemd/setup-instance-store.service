@@ -1,0 +1,12 @@
+[Unit]
+Description=Format and mount instance store
+After=dev-nvme.device systemd-udev-settle.service
+Wants=dev-nvme.device systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/setup-instance-store.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

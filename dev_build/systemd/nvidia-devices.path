@@ -1,0 +1,11 @@
+[Unit]
+Description=Monitor NVIDIA devices
+
+[Path]
+PathExists=/dev/nvidia0
+PathExists=/dev/nvidiactl
+PathExists=/dev/nvidia-modeset
+PathExists=/dev/nvidia-uvm
+
+[Install]
+WantedBy=multi-user.target

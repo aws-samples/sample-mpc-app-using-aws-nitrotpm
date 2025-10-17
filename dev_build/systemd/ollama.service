@@ -1,0 +1,39 @@
+[Unit]
+Description=Ollama AI Service
+After=network.target ollama-permissions.service
+Requires=ollama-permissions.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 2
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+RestartSec=3
+User=ollama
+Group=ollama
+SupplementaryGroups=video render
+StateDirectory=ollama
+StateDirectoryMode=0755
+RuntimeDirectory=ollama
+RuntimeDirectoryMode=0755
+DeviceAllow=char-nvidia-* rw
+DeviceAllow=/dev/nvidia* rw
+CapabilityBoundingSet=CAP_SYS_RESOURCE
+AmbientCapabilities=CAP_SYS_RESOURCE
+Environment=OLLAMA_HOST=0.0.0.0
+Environment=OLLAMA_MODELS=/mnt/instance-store/models
+Environment=NVIDIA_VISIBLE_DEVICES=all
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=HOME=/var/lib/ollama
+Environment=LD_LIBRARY_PATH=/usr/lib64:/usr/local/cuda/lib64:/usr/local/cuda/targets/x86_64-linux/lib:/lib64
+Environment=CUDA_PATH=/usr/local/cuda
+Environment=OLLAMA_NUM_GPU_LAYERS=33
+Environment=OLLAMA_LLM_LIBRARY=cuda
+Environment=CUDA_MEMORY_POOL_DISABLED=1
+Environment=OLLAMA_GPU_OVERHEAD=0
+Environment=OLLAMA_FLASH_ATTENTION=true
+Environment=OLLAMA_NUM_PARALLEL=4
+Environment=CUDA_LAUNCH_BLOCKING=0
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+[Unit]
+Description=NVIDIA devices available
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'echo "NVIDIA devices are available" && chmod 666 /dev/nvidia-caps/nvidia-cap* 2>/dev/null || true'
+RemainAfterExit=true

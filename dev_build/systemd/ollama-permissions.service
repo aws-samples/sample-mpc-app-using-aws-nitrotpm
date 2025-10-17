@@ -1,0 +1,15 @@
+[Unit]
+Description=Set up Ollama permissions
+After=setup-instance-store.service
+Requires=setup-instance-store.service
+RequiresMountsFor=/mnt/instance-store
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/setup-ollama-permissions.sh
+RemainAfterExit=true
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
