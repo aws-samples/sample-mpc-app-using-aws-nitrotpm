@@ -9,7 +9,7 @@ Type=simple
 User=ec2-user
 Group=ec2-user
 SupplementaryGroups=tss ollama
-WorkingDirectory=/home/ec2-user/mpc-app-example-using-aws-nitrotpm/backend
+WorkingDirectory=/home/ec2-user/sample-mpc-app-using-aws-nitrotpm/backend
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=OLLAMA_BASE_URL=http://localhost:11434
 ExecStart=/usr/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
