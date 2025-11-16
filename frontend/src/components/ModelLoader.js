@@ -187,19 +187,53 @@ function ModelLoader({ state = {}, setState = () => {} }) {
         break;
         
       case 'progress':
-        updateState(prev => ({
-          ...prev,
-          stepProgress: {
-            ...prev.stepProgress,
-            [message.step]: {
-              ...prev.stepProgress[message.step],
-              progress: message.progress,
-              message: message.message,
-              downloaded: message.downloaded,
-              total: message.total
-            }
+        updateState(prev => {
+          const currentStepProgress = prev.stepProgress[message.step] || {};
+          
+          // Handle sub-step progress
+          if (message.sub_step) {
+            const currentStepSubSteps = prev.subSteps[message.step] || {};
+            return {
+              ...prev,
+              stepProgress: {
+                ...prev.stepProgress,
+                [message.step]: {
+                  ...currentStepProgress,
+                  message: message.message
+                }
+              },
+              subSteps: {
+                ...prev.subSteps,
+                [message.step]: {
+                  ...currentStepSubSteps,
+                  [message.sub_step]: {
+                    ...currentStepSubSteps[message.sub_step],
+                    status: 'active',
+                    progress: message.progress,
+                    message: message.message,
+                    processed: message.processed,
+                    total: message.total
+                  }
+                }
+              }
+            };
+          } else {
+            // Regular step progress
+            return {
+              ...prev,
+              stepProgress: {
+                ...prev.stepProgress,
+                [message.step]: {
+                  ...currentStepProgress,
+                  progress: message.progress,
+                  message: message.message,
+                  downloaded: message.downloaded,
+                  total: message.total
+                }
+              }
+            };
           }
-        }));
+        });
         break;
         
       case 'step_complete':
@@ -654,36 +688,59 @@ function ModelLoader({ state = {}, setState = () => {} }) {
                       <Box sx={{ ml: 5, mt: 1, backgroundColor: '#f9f9f9', p: 1, borderRadius: 1 }}>
                         <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#666' }}>Sub-steps:</Typography>
                         {Object.entries(subSteps[index]).map(([subStepKey, subStep]) => (
-                          <Box key={subStepKey} sx={{ display: 'flex', alignItems: 'center', mb: 0.5, mt: 0.5 }}>
-                            <Box sx={{ mr: 1 }}>
-                              {subStep.status === 'completed' ? (
-                                <CheckCircle sx={{ color: '#4CAF50', fontSize: 16 }} />
-                              ) : subStep.status === 'active' ? (
-                                <CircularProgress size={16} />
-                              ) : (
-                                <ArrowForward sx={{ color: '#999', fontSize: 16 }} />
-                              )}
+                          <Box key={subStepKey} sx={{ mb: 1, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                              <Box sx={{ mr: 1 }}>
+                                {subStep.status === 'completed' ? (
+                                  <CheckCircle sx={{ color: '#4CAF50', fontSize: 16 }} />
+                                ) : subStep.status === 'active' ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <ArrowForward sx={{ color: '#999', fontSize: 16 }} />
+                                )}
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                                <Typography variant="body2" sx={{ 
+                                  color: subStep.status === 'completed' ? '#4CAF50' : subStep.status === 'active' ? '#4A4A4A' : '#999',
+                                  fontSize: '0.85rem'
+                                }}>
+                                  {subStep.message}
+                                </Typography>
+                                {subStep.status === 'completed' && subStep.duration && (
+                                  <Chip 
+                                    label={`${(subStep.duration / 1000).toFixed(1)}s`}
+                                    size="small"
+                                    sx={{ 
+                                      backgroundColor: '#E8F5E8', 
+                                      color: '#4CAF50',
+                                      fontSize: '0.7rem',
+                                      height: '20px'
+                                    }}
+                                  />
+                                )}
+                              </Box>
                             </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                              <Typography variant="body2" sx={{ 
-                                color: subStep.status === 'completed' ? '#4CAF50' : subStep.status === 'active' ? '#4A4A4A' : '#999',
-                                fontSize: '0.85rem'
-                              }}>
-                                {subStep.message}
-                              </Typography>
-                              {subStep.status === 'completed' && subStep.duration && (
-                                <Chip 
-                                  label={`${(subStep.duration / 1000).toFixed(1)}s`}
-                                  size="small"
-                                  sx={{ 
-                                    backgroundColor: '#E8F5E8', 
-                                    color: '#4CAF50',
-                                    fontSize: '0.7rem',
-                                    height: '20px'
-                                  }}
+                            
+                            {/* Progress bar for sub-steps with progress */}
+                            {subStep.progress !== undefined && subStep.status === 'active' && (
+                              <Box sx={{ ml: 3, mr: 2 }}>
+                                <LinearProgress 
+                                  variant="determinate" 
+                                  value={subStep.progress} 
+                                  sx={{ height: 6, borderRadius: 3 }}
                                 />
-                              )}
-                            </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                                  <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                                    {subStep.progress?.toFixed(1)}%
+                                  </Typography>
+                                  {subStep.processed && subStep.total && (
+                                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                                      {formatBytes(subStep.processed)} / {formatBytes(subStep.total)}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            )}
                           </Box>
                         ))}
                       </Box>

@@ -200,28 +200,44 @@ class WebSocketManager:
             await self.send_message(client_id, {
                 "type": "step_start",
                 "step": 2,
-                "message": "Calculating model hash..."
+                "message": "Calculating model hashes..."
             })
             
-            # Sub-step: Calculate hash
-            await self.send_message(client_id, {
-                "type": "sub_step_start",
-                "step": 2,
-                "sub_step": "calculate_hash",
-                "message": "Calculating SHA-256 and SHA-384 hashes of model file..."
-            })
+            # Progress tracking for hash calculation
+            hash_progress_data = {"step": 2, "progress": 0, "processed": 0, "total": 0}
             
-            # Calculate hash (this is done in load_model_to_ollama but we need it separately)
-            hash_result = await asyncio.get_event_loop().run_in_executor(
-                None, model_manager.calculate_model_hash, decrypt_result["model_path"]
-            )
+            def hash_progress(operation, progress, processed, total):
+                hash_progress_data.update({
+                    "operation": operation,
+                    "progress": progress,
+                    "processed": processed,
+                    "total": total
+                })
             
-            await self.send_message(client_id, {
-                "type": "sub_step_complete",
-                "step": 2,
-                "sub_step": "calculate_hash",
-                "message": "Model hash calculation completed ✓"
-            })
+            # Start hash calculation in background and monitor progress
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    model_manager.calculate_model_hash, 
+                    decrypt_result["model_path"]
+                )
+                
+                # Monitor progress while hash calculation runs
+                while not future.done():
+                    if hash_progress_data["total"] > 0:
+                        operation = hash_progress_data.get("operation", "calculate_hash")
+                        await self.send_message(client_id, {
+                            "type": "progress",
+                            "step": 2,
+                            "sub_step": operation,
+                            "progress": hash_progress_data["progress"],
+                            "message": f"Calculating {operation.replace('calculate_', '').upper()}: {hash_progress_data['progress']:.1f}%",
+                            "processed": hash_progress_data["processed"],
+                            "total": hash_progress_data["total"]
+                        })
+                    await asyncio.sleep(0.1)  # Check every 100ms
+                
+                # Get result
+                hash_result = future.result()
             
             await self.send_message(client_id, {
                 "type": "step_complete",
@@ -237,13 +253,14 @@ class WebSocketManager:
                 "message": "Loading model to Ollama..."
             })
             
-            # Progress tracking for Ollama upload
-            upload_progress_data = {"progress": 0, "uploaded": 0, "total": 0}
+            # Progress tracking for all operations in load_model_to_ollama
+            progress_data = {"operation": "", "progress": 0, "processed": 0, "total": 0}
             
-            def ollama_progress(step, progress, uploaded, total):
-                upload_progress_data.update({
+            def ollama_progress(operation, progress, processed, total):
+                progress_data.update({
+                    "operation": operation,
                     "progress": progress,
-                    "uploaded": uploaded,
+                    "processed": processed,
                     "total": total
                 })
             
@@ -254,31 +271,31 @@ class WebSocketManager:
                     decrypt_result["model_path"], model_name, ollama_progress
                 )
                 
-                # Monitor progress while upload runs
+                # Monitor progress while operations run
                 while not future.done():
-                    if upload_progress_data["total"] > 0:
+                    if progress_data["total"] > 0:
+                        operation = progress_data.get("operation", "")
+                        if operation == "calculate_sha256":
+                            message = f"Calculating SHA-256 hash: {progress_data['progress']:.1f}%"
+                        elif operation == "calculate_sha384":
+                            message = f"Calculating SHA-384 hash: {progress_data['progress']:.1f}%"
+                        elif operation == "upload_blob":
+                            message = f"Uploading to Ollama: {progress_data['progress']:.1f}% ({progress_data['processed']//1024//1024:.1f}/{progress_data['total']//1024//1024:.1f} MB)"
+                        else:
+                            message = f"Processing: {progress_data['progress']:.1f}%"
+                        
                         await self.send_message(client_id, {
                             "type": "progress",
                             "step": 3,
-                            "progress": upload_progress_data["progress"],
-                            "message": f"Uploading to Ollama: {upload_progress_data['progress']:.1f}% ({upload_progress_data['uploaded']//1024//1024:.1f}/{upload_progress_data['total']//1024//1024:.1f} MB)",
-                            "uploaded": upload_progress_data["uploaded"],
-                            "total": upload_progress_data["total"]
+                            "sub_step": operation,
+                            "progress": progress_data["progress"],
+                            "message": message,
+                            "processed": progress_data["processed"],
+                            "total": progress_data["total"]
                         })
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.2)  # Check every 200ms for more responsive updates
                 
                 load_result = future.result()
-                
-                # Send final 100% progress
-                if upload_progress_data["total"] > 0:
-                    await self.send_message(client_id, {
-                        "type": "progress",
-                        "step": 3,
-                        "progress": 100.0,
-                        "message": "Upload to Ollama completed",
-                        "uploaded": upload_progress_data["total"],
-                        "total": upload_progress_data["total"]
-                    })
             
             if load_result["status"] == "error":
                 await self.send_message(client_id, {

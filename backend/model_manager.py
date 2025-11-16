@@ -283,76 +283,25 @@ class ModelManager:
             
 
     
-    def upload_encrypted_model(self, model_path: str, bucket: str, kms_key_id: str) -> Dict[str, Any]:
-        """Encrypt and upload model to S3 with KMS datakey"""
-        try:
-            # Step 1: Generate datakey from KMS
-            logger.info("Generating datakey from KMS")
-            datakey_response = self.kms_client.generate_data_key(
-                KeyId=kms_key_id,
-                KeySpec='AES_256'
-            )
-            
-            plaintext_datakey = datakey_response['Plaintext']
-            encrypted_datakey = datakey_response['CiphertextBlob']
-            
-            # Step 2: Read and encrypt model
-            logger.info(f"Reading model from {model_path}")
-            with open(model_path, 'rb') as f:
-                model_data = f.read()
-            
-            # Encrypt with AES-256-GCM
-            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            from cryptography.hazmat.backends import default_backend
-            import os as crypto_os
-            
-            iv = crypto_os.urandom(12)  # 96-bit IV for GCM
-            cipher = Cipher(algorithms.AES(plaintext_datakey), modes.GCM(iv), backend=default_backend())
-            encryptor = cipher.encryptor()
-            ciphertext = encryptor.update(model_data) + encryptor.finalize()
-            
-            # Combine IV + ciphertext + auth_tag
-            encrypted_model = iv + ciphertext + encryptor.tag
-            
-            # Step 3: Upload encrypted model and datakey
-            model_filename = os.path.basename(model_path)
-            encrypted_model_key = f"{model_filename}.encrypted"
-            datakey_key = f"{model_filename}.datakey"
-            
-            logger.info(f"Uploading encrypted model to s3://{bucket}/{encrypted_model_key}")
-            self.s3_client.put_object(
-                Bucket=bucket,
-                Key=encrypted_model_key,
-                Body=encrypted_model
-            )
-            
-            logger.info(f"Uploading encrypted datakey to s3://{bucket}/{datakey_key}")
-            self.s3_client.put_object(
-                Bucket=bucket,
-                Key=datakey_key,
-                Body=encrypted_datakey
-            )
-            
-            return {
-                "status": "success",
-                "encrypted_model_key": encrypted_model_key,
-                "datakey_key": datakey_key,
-                "bucket": bucket
-            }
-            
-        except Exception as e:
-            logger.warning(f"Failed to encrypt and upload model: {e}")
-            return {"status": "error", "message": str(e)}
     
     def load_model_to_ollama(self, model_path: str, model_name: str, progress_callback=None) -> Dict[str, Any]:
         """Load model to Ollama and extend PCR15 with model hash"""
         try:
+            # Get file size for progress calculation
+            file_size = os.path.getsize(model_path)
+            
             # Step 1: Calculate SHA-256 hash for Ollama (required)
             logger.info(f"Calculating SHA256 hash of {model_path}")
             sha256_hash = hashlib.sha256()
+            bytes_processed = 0
+            
             with open(model_path, 'rb') as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     sha256_hash.update(chunk)
+                    bytes_processed += len(chunk)
+                    if progress_callback and file_size > 0:
+                        progress = (bytes_processed / file_size) * 100
+                        progress_callback('calculate_sha256', progress, bytes_processed, file_size)
             
             model_hash_sha256 = sha256_hash.hexdigest()
             logger.info(f"Model SHA256 hash: {model_hash_sha256}")
@@ -360,9 +309,15 @@ class ModelManager:
             # Step 2: Calculate SHA-384 hash for PCR15 extension
             logger.info(f"Calculating SHA384 hash of {model_path}")
             sha384_hash = hashlib.sha384()
+            bytes_processed = 0
+            
             with open(model_path, 'rb') as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     sha384_hash.update(chunk)
+                    bytes_processed += len(chunk)
+                    if progress_callback and file_size > 0:
+                        progress = (bytes_processed / file_size) * 100
+                        progress_callback('calculate_sha384', progress, bytes_processed, file_size)
             
             model_hash_sha384 = sha384_hash.hexdigest()
             logger.info(f"Model SHA384 hash: {model_hash_sha384}")

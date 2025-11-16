@@ -388,10 +388,6 @@ class ModelDownloadRequest(BaseModel):
     datakey_key: str
     kms_key_id: str
 
-class ModelUploadRequest(BaseModel):
-    model_path: str
-    bucket: str
-    kms_key_id: str
 
 class ModelLoadRequest(BaseModel):
     model_path: str
@@ -421,23 +417,6 @@ async def download_model(request: ModelDownloadRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
 
-@app.post("/models/upload")
-async def upload_model(request: ModelUploadRequest):
-    """Encrypt and upload model to S3"""
-    try:
-        result = model_manager.upload_encrypted_model(
-            request.model_path,
-            request.bucket,
-            request.kms_key_id
-        )
-        
-        if result["status"] == "error":
-            raise HTTPException(status_code=500, detail=result["message"])
-        
-        return result
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.post("/models/load")
 async def load_model(request: ModelLoadRequest):
