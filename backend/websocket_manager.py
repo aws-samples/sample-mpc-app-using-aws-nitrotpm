@@ -218,7 +218,8 @@ class WebSocketManager:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(
                     model_manager.calculate_model_hash, 
-                    decrypt_result["model_path"]
+                    decrypt_result["model_path"],
+                    hash_progress
                 )
                 
                 # Monitor progress while hash calculation runs
