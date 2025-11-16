@@ -390,14 +390,22 @@ function ModelLoader({ state = {}, setState = () => {} }) {
       return;
     }
 
+    // Clean up any existing WebSocket connection and timers
+    if (clientIdRef.current) {
+      console.log('Disconnecting previous WebSocket connection:', clientIdRef.current);
+      disconnect(clientIdRef.current);
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+    }
+
     resetState();
     updateState({ processing: true });
 
-    // Generate unique client ID if not exists
-    if (!clientIdRef.current) {
-      clientIdRef.current = `loader-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      updateState({ clientId: clientIdRef.current });
-    }
+    // Always generate a new unique client ID for each load attempt
+    clientIdRef.current = `loader-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    updateState({ clientId: clientIdRef.current });
 
     // Set timeout for stuck connections
     const timeoutId = setTimeout(() => {
