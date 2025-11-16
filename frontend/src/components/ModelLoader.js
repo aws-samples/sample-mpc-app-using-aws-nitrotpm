@@ -91,6 +91,7 @@ function ModelLoader({ state = {}, setState = () => {} }) {
   
   const clientIdRef = useRef(clientId);
   const pingIntervalRef = useRef(null);
+  const progressScrollRef = useRef(null);
   const [loadedModels, setLoadedModels] = useState([]);
   const [modelExists, setModelExists] = useState(false);
 
@@ -135,6 +136,15 @@ function ModelLoader({ state = {}, setState = () => {} }) {
             }
           };
         });
+        // Auto-scroll to current step
+        setTimeout(() => {
+          if (progressScrollRef.current) {
+            const activeStepElement = progressScrollRef.current.querySelector(`[data-step="${message.step}"]`);
+            if (activeStepElement) {
+              activeStepElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        }, 100);
         break;
         
       case 'sub_step_start':
@@ -237,17 +247,33 @@ function ModelLoader({ state = {}, setState = () => {} }) {
         break;
         
       case 'step_complete':
-        updateState(prev => ({
-          ...prev,
-          stepProgress: {
-            ...prev.stepProgress,
-            [message.step]: { status: 'completed', message: message.message || 'Completed', progress: undefined }
-          },
-          stepResults: {
-            ...prev.stepResults,
-            [message.step]: message.result
+        updateState(prev => {
+          // Clear any active sub-steps when step completes
+          const newSubSteps = { ...prev.subSteps };
+          if (newSubSteps[message.step]) {
+            Object.keys(newSubSteps[message.step]).forEach(subStepKey => {
+              if (newSubSteps[message.step][subStepKey].status === 'active') {
+                newSubSteps[message.step][subStepKey] = {
+                  ...newSubSteps[message.step][subStepKey],
+                  status: 'completed'
+                };
+              }
+            });
           }
-        }));
+          
+          return {
+            ...prev,
+            stepProgress: {
+              ...prev.stepProgress,
+              [message.step]: { status: 'completed', message: message.message || 'Completed', progress: undefined }
+            },
+            stepResults: {
+              ...prev.stepResults,
+              [message.step]: message.result
+            },
+            subSteps: newSubSteps
+          };
+        });
         break;
         
       case 'error':
@@ -263,12 +289,28 @@ function ModelLoader({ state = {}, setState = () => {} }) {
         break;
         
       case 'complete':
-        updateState(prev => ({
-          ...prev,
-          success: true,
-          processing: false,
-          currentStep: -1
-        }));
+        updateState(prev => {
+          // Clear any remaining active sub-steps
+          const newSubSteps = { ...prev.subSteps };
+          Object.keys(newSubSteps).forEach(stepKey => {
+            Object.keys(newSubSteps[stepKey]).forEach(subStepKey => {
+              if (newSubSteps[stepKey][subStepKey].status === 'active') {
+                newSubSteps[stepKey][subStepKey] = {
+                  ...newSubSteps[stepKey][subStepKey],
+                  status: 'completed'
+                };
+              }
+            });
+          });
+          
+          return {
+            ...prev,
+            success: true,
+            processing: false,
+            currentStep: -1,
+            subSteps: newSubSteps
+          };
+        });
         break;
     }
   };
@@ -618,8 +660,8 @@ function ModelLoader({ state = {}, setState = () => {} }) {
             </Card>
             
             {/* Processing Progress */}
-            <Card sx={{ backgroundColor: '#E8F5E8', flex: 1 }}>
-            <CardContent>
+            <Card sx={{ backgroundColor: '#E8F5E8', height: '600px', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <Typography variant="h6" gutterBottom sx={{ color: '#4A4A4A' }}>
                 Loading Progress
               </Typography>
@@ -645,6 +687,29 @@ function ModelLoader({ state = {}, setState = () => {} }) {
                 </Box>
               )}
               
+              <Box 
+                ref={progressScrollRef}
+                sx={{ 
+                  flex: 1, 
+                  overflowY: 'auto', 
+                  overflowX: 'hidden',
+                  pr: 1,
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#c1c1c1',
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb:hover': {
+                    background: '#a8a8a8',
+                  },
+                }}
+              >
               {steps.map((step, index) => {
                 const progress = stepProgress[index] || {};
                 const isActive = currentStep === index;
@@ -653,7 +718,7 @@ function ModelLoader({ state = {}, setState = () => {} }) {
                 const hasProgress = progress.progress !== undefined && !isCompleted;
                 
                 return (
-                  <Box key={step.id} sx={{ mb: 3 }}>
+                  <Box key={step.id} data-step={index} sx={{ mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <Box sx={{ mr: 2 }}>
                         {getStepIcon(index)}
@@ -800,19 +865,23 @@ function ModelLoader({ state = {}, setState = () => {} }) {
                       </Box>
                     )}
                     
-                    {/* Show hash result for Load to Ollama step */}
-                    {index === 3 && stepResults[3] && stepResults[3].model_hash && (
+                    {/* Show result for Load to Ollama step */}
+                    {index === 3 && stepResults[3] && (
                       <Box sx={{ mt: 1, ml: 5 }}>
-                        <Chip 
-                          label={`Model: ${stepResults[3].model_name || modelName}`}
-                          size="small"
-                          sx={{ backgroundColor: '#BBDEFB', mr: 1 }}
-                        />
-                        <Chip 
-                          label={`SHA256: ${stepResults[3].model_hash}`}
-                          size="small"
-                          sx={{ backgroundColor: '#FFE0B2' }}
-                        />
+                        {stepResults[3].model_name && (
+                          <Chip 
+                            label={`Model: ${stepResults[3].model_name || modelName}`}
+                            size="small"
+                            sx={{ backgroundColor: '#BBDEFB', mr: 1 }}
+                          />
+                        )}
+                        {stepResults[3].model_hash && (
+                          <Chip 
+                            label={`SHA256: ${stepResults[3].model_hash}`}
+                            size="small"
+                            sx={{ backgroundColor: '#FFE0B2' }}
+                          />
+                        )}
                       </Box>
                     )}
                     
@@ -838,6 +907,7 @@ function ModelLoader({ state = {}, setState = () => {} }) {
                   </Box>
                 );
               })}
+              </Box>
               
               {/* Debug Messages Panel */}
               <Box sx={{ mt: 3 }}>
