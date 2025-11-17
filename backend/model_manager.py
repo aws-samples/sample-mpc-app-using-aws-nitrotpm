@@ -41,8 +41,8 @@ class ModelManager:
         )
         
         self.kms_client = boto3.client('kms', region_name=region)
-        self.models_dir = "/mnt/instance-store/models"
-        self.ollama_url = "http://localhost:11434"
+        self.models_dir = os.getenv('MODELS_DIR', '/mnt/instance-store/models')
+        self.ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
         
         # Ensure models directory exists
         os.makedirs(self.models_dir, exist_ok=True)
@@ -287,6 +287,21 @@ class ModelManager:
     def load_model_to_ollama(self, model_path: str, model_name: str, progress_callback=None) -> Dict[str, Any]:
         """Load model to Ollama and extend PCR15 with model hash"""
         try:
+            # Validate and normalize the model path to prevent path traversal
+            normalized_path = os.path.normpath(model_path)
+            safe_model_path = os.path.join(self.models_dir, os.path.basename(normalized_path))
+            
+            # Verify the resulting path stays within the models directory
+            if not os.path.abspath(safe_model_path).startswith(os.path.abspath(self.models_dir)):
+                return {"status": "error", "message": "Invalid model path: path traversal detected"}
+            
+            # Check if the safe path exists and use it
+            if not os.path.exists(safe_model_path):
+                return {"status": "error", "message": f"Model file not found in safe directory: {safe_model_path}"}
+            
+            # Use the validated safe path
+            model_path = safe_model_path
+            
             # Get file size for progress calculation
             file_size = os.path.getsize(model_path)
             
