@@ -218,34 +218,86 @@ class ModelManager:
             datakey = cms_decrypt_result.stdout
             logger.info(f"Successfully decrypted datakey, size: {len(datakey)} bytes")
             
-            # Read the encrypted model file
-            with open(encrypted_path, 'rb') as f:
-                encrypted_model = f.read()
-            
-            logger.info(f"Read {len(encrypted_model)} bytes from encrypted file")
-            
-            # Step 6: Decrypt model with datakey (AES-256-GCM)
-            logger.info("Decrypting model with datakey")
+            # Step 6: Decrypt model with datakey (AES-256-GCM) in chunks
+            logger.info("Decrypting model with datakey (chunk-based processing)")
             from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
             from cryptography.hazmat.backends import default_backend
             
-            # Extract IV (first 12 bytes), ciphertext, and auth tag (last 16 bytes)
-            iv = encrypted_model[:12]
-            auth_tag = encrypted_model[-16:]
-            ciphertext = encrypted_model[12:-16]
+            # Get file size for progress and validation
+            file_size = os.path.getsize(encrypted_path)
+            logger.info(f"Encrypted file size: {file_size} bytes")
             
-            # Decrypt with AES-256-GCM
-            cipher = Cipher(algorithms.AES(datakey), modes.GCM(iv, auth_tag), backend=default_backend())
-            decryptor = cipher.decryptor()
-            decrypted_model = decryptor.update(ciphertext) + decryptor.finalize()
+            if file_size < 28:  # Minimum size: 12 (IV) + 16 (auth_tag) = 28 bytes
+                raise Exception("Encrypted file is too small to contain valid AES-GCM data")
             
-            # Step 7: Save decrypted model
+            # Step 7: Save decrypted model (process in chunks to avoid memory issues)
             model_filename = os.path.basename(encrypted_path).replace('.encrypted', '').replace('.enc', '')
             model_path = os.path.join(self.models_dir, model_filename)
             
             logger.info(f"Saving decrypted model to {model_path}")
-            with open(model_path, 'wb') as f:
-                f.write(decrypted_model)
+            
+            chunk_size = 8 * 1024 * 1024  # 8MB chunks for efficient processing
+            total_decrypted = 0
+            
+            with open(encrypted_path, 'rb') as encrypted_file, \
+                 open(model_path, 'wb') as decrypted_file:
+                
+                # Read IV (first 12 bytes)
+                iv = encrypted_file.read(12)
+                if len(iv) != 12:
+                    raise Exception("Failed to read IV from encrypted file")
+                
+                # Read auth tag (last 16 bytes) - seek to end first
+                encrypted_file.seek(-16, 2)  # Seek to 16 bytes from end
+                auth_tag = encrypted_file.read(16)
+                if len(auth_tag) != 16:
+                    raise Exception("Failed to read auth tag from encrypted file")
+                
+                # Calculate ciphertext size and reset to ciphertext start
+                ciphertext_size = file_size - 28  # Total - IV - auth_tag
+                encrypted_file.seek(12)  # Reset to start of ciphertext
+                
+                logger.info(f"IV: {len(iv)} bytes, Auth tag: {len(auth_tag)} bytes, Ciphertext: {ciphertext_size} bytes")
+                
+                # Initialize AES-GCM decryptor
+                cipher = Cipher(algorithms.AES(datakey), modes.GCM(iv, auth_tag), backend=default_backend())
+                decryptor = cipher.decryptor()
+                
+                # Process ciphertext in chunks
+                bytes_remaining = ciphertext_size
+                while bytes_remaining > 0:
+                    # Read chunk (don't exceed remaining bytes)
+                    current_chunk_size = min(chunk_size, bytes_remaining)
+                    chunk = encrypted_file.read(current_chunk_size)
+                    
+                    if not chunk:
+                        break
+                    
+                    # Decrypt chunk
+                    decrypted_chunk = decryptor.update(chunk)
+                    decrypted_file.write(decrypted_chunk)
+                    
+                    bytes_remaining -= len(chunk)
+                    total_decrypted += len(decrypted_chunk)
+                    
+                    # Log progress for large files
+                    if total_decrypted % (50 * 1024 * 1024) == 0 or bytes_remaining == 0:
+                        progress = ((ciphertext_size - bytes_remaining) / ciphertext_size) * 100
+                        logger.info(f"Decryption progress: {progress:.1f}% ({total_decrypted} bytes decrypted)")
+                
+                # Finalize decryption (validates auth tag)
+                try:
+                    final_chunk = decryptor.finalize()
+                    if final_chunk:
+                        decrypted_file.write(final_chunk)
+                        total_decrypted += len(final_chunk)
+                    logger.info(f"Decryption completed successfully. Total decrypted: {total_decrypted} bytes")
+                except Exception as auth_error:
+                    # Clean up partial file on authentication failure
+                    decrypted_file.close()
+                    if os.path.exists(model_path):
+                        os.unlink(model_path)
+                    raise Exception(f"Decryption authentication failed: {auth_error}")
             
             # Clean up encrypted file
             os.unlink(encrypted_path)
@@ -253,7 +305,7 @@ class ModelManager:
             return {
                 "status": "success",
                 "model_path": model_path,
-                "model_size": len(decrypted_model)
+                "model_size": total_decrypted
             }
             
         except Exception as e:
@@ -466,14 +518,25 @@ class ModelManager:
         except Exception as e:
             return {"status": "error", "message": str(e)}
     
-    def calculate_model_hash(self, model_path: str) -> Dict[str, Any]:
+    def calculate_model_hash(self, model_path: str, progress_callback=None) -> Dict[str, Any]:
         """Calculate SHA-256 hash of model file"""
         try:
             logger.info(f"Calculating SHA256 hash of {model_path}")
+            
+            # Get file size for progress calculation
+            file_size = os.path.getsize(model_path)
             sha256_hash = hashlib.sha256()
+            bytes_processed = 0
+            
             with open(model_path, 'rb') as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     sha256_hash.update(chunk)
+                    bytes_processed += len(chunk)
+                    
+                    # Call progress callback if provided
+                    if progress_callback and file_size > 0:
+                        progress = (bytes_processed / file_size) * 100
+                        progress_callback('calculate_hash', progress, bytes_processed, file_size)
             
             model_hash = sha256_hash.hexdigest()
             logger.info(f"Model SHA256 hash: {model_hash}")
