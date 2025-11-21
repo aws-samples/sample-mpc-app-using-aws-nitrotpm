@@ -232,7 +232,19 @@ class ModelManager:
             
             # Step 7: Save decrypted model (process in chunks to avoid memory issues)
             model_filename = os.path.basename(encrypted_path).replace('.encrypted', '').replace('.enc', '')
-            model_path = os.path.join(self.models_dir, model_filename)
+            
+            # Validate and normalize the model filename to prevent path traversal
+            normalized_filename = os.path.normpath(model_filename)
+            
+            # Construct the intended candidate path within models_dir, preserving subfolder layout
+            candidate_path = os.path.abspath(os.path.join(self.models_dir, normalized_filename))
+            
+            # Verify the resulting path stays within the models directory root (prevents traversal)
+            models_dir_abs = os.path.abspath(self.models_dir)
+            if not candidate_path.startswith(models_dir_abs + os.sep) and candidate_path != models_dir_abs:
+                raise Exception("Invalid model filename: path traversal detected")
+            
+            model_path = candidate_path
             
             logger.info(f"Saving decrypted model to {model_path}")
             
@@ -341,11 +353,16 @@ class ModelManager:
         try:
             # Validate and normalize the model path to prevent path traversal
             normalized_path = os.path.normpath(model_path)
-            safe_model_path = os.path.join(self.models_dir, os.path.basename(normalized_path))
             
-            # Verify the resulting path stays within the models directory
-            if not os.path.abspath(safe_model_path).startswith(os.path.abspath(self.models_dir)):
+            # Construct the intended candidate path within models_dir, preserving subfolder layout
+            candidate_path = os.path.abspath(os.path.join(self.models_dir, normalized_path))
+            
+            # Verify the resulting path stays within the models directory root (prevents traversal)
+            models_dir_abs = os.path.abspath(self.models_dir)
+            if not candidate_path.startswith(models_dir_abs + os.sep) and candidate_path != models_dir_abs:
                 return {"status": "error", "message": "Invalid model path: path traversal detected"}
+            
+            safe_model_path = candidate_path
             
             # Check if the safe path exists and use it
             if not os.path.exists(safe_model_path):
