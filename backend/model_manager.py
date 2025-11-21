@@ -538,14 +538,32 @@ class ModelManager:
     def calculate_model_hash(self, model_path: str, progress_callback=None) -> Dict[str, Any]:
         """Calculate SHA-256 hash of model file"""
         try:
-            logger.info(f"Calculating SHA256 hash of {model_path}")
+            # Validate and normalize the model path to prevent path traversal
+            normalized_path = os.path.normpath(model_path)
+            
+            # Construct the intended candidate path within models_dir, preserving subfolder layout
+            candidate_path = os.path.abspath(os.path.join(self.models_dir, normalized_path))
+            
+            # Verify the resulting path stays within the models directory root (prevents traversal)
+            models_dir_abs = os.path.abspath(self.models_dir)
+            if not candidate_path.startswith(models_dir_abs + os.sep) and candidate_path != models_dir_abs:
+                return {"status": "error", "message": "Invalid model path: path traversal detected"}
+            
+            # Check if the safe path exists and use it
+            if not os.path.exists(candidate_path):
+                return {"status": "error", "message": f"Model file not found in safe directory: {candidate_path}"}
+            
+            # Use the validated safe path
+            safe_model_path = candidate_path
+            
+            logger.info(f"Calculating SHA256 hash of {safe_model_path}")
             
             # Get file size for progress calculation
-            file_size = os.path.getsize(model_path)
+            file_size = os.path.getsize(safe_model_path)
             sha256_hash = hashlib.sha256()
             bytes_processed = 0
             
-            with open(model_path, 'rb') as f:
+            with open(safe_model_path, 'rb') as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     sha256_hash.update(chunk)
                     bytes_processed += len(chunk)
