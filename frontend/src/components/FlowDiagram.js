@@ -9,11 +9,11 @@ const FlowDiagram = () => {
   const [cardPosition, setCardPosition] = useState({ x: 0, y: 0 });
 
   const nodeDetails = {
-    partyA: { title: "Party A - Model Owner", description: "Encrypts and uploads model weights using AWS KMS. Verifies TEE attestation before sealing data to specific PCR measurements." },
-    s3: { title: "Amazon S3 Storage", description: "Secure cloud storage for encrypted model files and data keys. Provides durable storage and publishing mechanism." },
-    tee: { title: "NitroTPM-TEE", description: "Trusted Execution Environment with hardware-backed attestation. Provides secure model decryption and execution with PCR measurements." },
+    partyA: { title: "Party A - Model Owner", description: "Encrypts and uploads model weights using AWS KMS. Verifies EC2 Instance attestation before sealing data to specific PCR measurements." },
+    S3: { title: "Amazon S3 Storage", description: "Secure cloud storage for encrypted model files and data keys. Provides durable storage and publishing mechanism." },
+    EC2: { title: "EC2 Instance Attestation", description: "Isolated compute environment with hardware-backed attestation. Provides secure model decryption and execution with PCR measurements." },
     partyB: { title: "Party B - Model Consumer", description: "Verifies attestation documents and loads models securely. Ensures trusted execution environment before model usage." },
-    chat: { title: "Chat Interface (Ollama)", description: "LLM inference endpoint providing chat capabilities. Runs securely within the TEE with verified model integrity." }
+    chat: { title: "Chat Interface (Ollama)", description: "LLM inference endpoint providing chat capabilities. Runs securely within the EC2 Instance with verified model integrity." }
   };
 
   useEffect(() => {
@@ -28,8 +28,8 @@ const FlowDiagram = () => {
     // Define nodes with mutable positions
     let nodes = [
       { id: "partyA", x: 100, y: 100, label: "Party A\nModel Owner", color: "#1976D2" },
-      { id: "s3", x: 300, y: 100, label: "S3\nEncrypted Model", color: "#FF9800" },
-      { id: "tee", x: 500, y: 200, label: "NitroTPM-TEE\nTrusted Environment", color: "#F57C00" },
+      { id: "S3", x: 300, y: 100, label: "S3\nEncrypted Model", color: "#FF9800" },
+      { id: "EC2", x: 500, y: 200, label: "EC2 Instance", color: "#F57C00" },
       { id: "partyB", x: 700, y: 100, label: "Party B\nModel Consumer", color: "#388E3C" },
       { id: "chat", x: 700, y: 300, label: "Chat Interface\nOllama", color: "#2196F3" }
     ];
@@ -37,10 +37,10 @@ const FlowDiagram = () => {
     // Define links
     const links = [
       { source: "partyA", target: "s3", label: "Encrypt & Upload", direction: "→" },
-      { source: "s3", target: "tee", label: "Download & Decrypt", direction: "↘" },
-      { source: "tee", target: "partyB", label: "Attestation Verify", direction: "↗" },
+      { source: "S3", target: "EC2", label: "Download & Decrypt", direction: "↘" },
+      { source: "EC2", target: "partyB", label: "Attestation Verify", direction: "↗" },
       { source: "partyB", target: "chat", label: "Load Model", direction: "↓" },
-      { source: "chat", target: "tee", label: "Inference Requests", direction: "↰" }
+      { source: "chat", target: "EC2", label: "Inference Requests", direction: "↰" }
     ];
 
     // Create arrow marker

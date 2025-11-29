@@ -138,7 +138,7 @@ function TEEEnvironment() {
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ color: '#4A4A4A' }}>
             <CloudIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-            TEE Environment Summary
+            Environment Summary
           </Typography>
           
           <Grid container spacing={2}>
@@ -195,7 +195,7 @@ function TEEEnvironment() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ color: '#4A4A4A' }}>
-          TEE Environment
+          Environment
         </Typography>
         
         <Button

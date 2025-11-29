@@ -27,7 +27,7 @@ function AboutPage() {
       
       <Paper sx={{ p: 3, mb: 4, backgroundColor: '#F8F9FA' }}>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.8, color: '#4A4A4A' }}>
-          This sample app demonstrates how two (or more) parties that intend to collaborate on a LLM based app can do so by leveraging a NitroTPM based Trusted Execution Environment (TPM-TEE).
+          This sample app demonstrates how two (or more) parties that intend to collaborate on a LLM based app can do so by leveraging a isolate compute environment enabled by EC2 Instance attestation.
         </Typography>
       </Paper>
       
@@ -56,7 +56,7 @@ function AboutPage() {
                   </Typography>
                 </Box>
                 <Typography variant="body2" sx={{ ml: 4, color: '#666' }}>
-                  Introspects the TEE and uses verified Attestation document to seal model weights to desired measurements (PCR4, PCR7)
+                  Introspects the Attestable AMI recipe and uses verified Attestation document to seal model weights to desired measurements (PCR4, PCR7)
                 </Typography>
               </Box>
               <Box sx={{ mb: 2 }}>
@@ -109,11 +109,11 @@ function AboutPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <ChatIcon sx={{ color: '#388E3C', mr: 1 }} />
                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    Trusted Chat Interface
+                    Attested Chat Interface
                   </Typography>
                 </Box>
                 <Typography variant="body2" sx={{ ml: 4, color: '#666' }}>
-                  Verifies PCR4, PCR7, and PCR16 (model weights) to ensure trusted execution environment and specific model integrity
+                  Verifies PCR4, PCR7, PCR12 and PCR15 (model weights) to ensure execution environment and specific model integrity
                 </Typography>
               </Box>
             </CardContent>
@@ -134,7 +134,7 @@ function AboutPage() {
           <Card sx={{ backgroundColor: '#FFF3E0' }}>
             <CardContent>
               <Typography variant="h5" gutterBottom sx={{ color: '#F57C00', fontWeight: 'bold', textAlign: 'center' }}>
-                NitroTPM-TEE features
+                EC2 Instance Attestation features
               </Typography>
               
               <Grid container spacing={3} sx={{ mt: 2 }}>
@@ -147,7 +147,7 @@ function AboutPage() {
                       TPM Attestation
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      Hardware-backed attestation document with PCR measurements for trusted execution verification
+                      Hardware-backed attestation document with PCR measurements for execution environment verification
                     </Typography>
                   </Box>
                 </Grid>
@@ -161,7 +161,7 @@ function AboutPage() {
                       Sealed sensitive data
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      Out of the box AWS KMS integration that facilitates envelope encrypting sensitive data that is conditionally sealed to the TPM-TEE PCR(s)
+                      Out of the box AWS KMS integration that facilitates envelope encrypting sensitive data that is conditionally sealed to the EC2 Instance attestation PCR(s)
                     </Typography>
                   </Box>
                 </Grid>
@@ -175,7 +175,7 @@ function AboutPage() {
                       PCR Verification
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      Multi-layer verification including boot measurements (PCR4, PCR7) and model integrity (PCR16)
+                      Multi-layer verification including boot measurements (PCR4, PCR7) and model integrity (PCR15)
                     </Typography>
                   </Box>
                 </Grid>

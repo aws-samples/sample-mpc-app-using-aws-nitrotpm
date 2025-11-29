@@ -2,7 +2,7 @@
 
 ## Multi-Party LLM Collaboration sample
 
-This is a sample **Trusted Execution Environment (TPM-TEE)** application that showcases how secure collaboration between LLM model owners and consumers can be achieved using [AWS NitroTPM](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nitrotpm.html) and [EC2 instance attestation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nitrotpm-attestation.html).
+This is a sample application that showcases how secure collaboration between LLM model owners and consumers can be achieved using [AWS NitroTPM](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nitrotpm.html) and [EC2 instance attestation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nitrotpm-attestation.html).
 
 > [!note]
 > This application offers all the functionalities in one web application user interface for "ease of use" in learning the fundamentals around attestation based sealing, unsealing and other primitives. Application is not authenticating, authorizing or separating the roles and responsibilities of each party. Application is also not showing how to build an Isolated compute environment.
@@ -19,12 +19,12 @@ This is a sample **Trusted Execution Environment (TPM-TEE)** application that sh
 - **Model Loader**: Securely download and decrypt models using TPM attestation
 - **Chat Interface**: Interactive chat with loaded models, with PCR verification display
 
-#### **NitroTPM-TEE Attestation**
-- **Attestation Document Viewer**: Display and verify TPM attestation documents.
-- **PCR Measurements**: View Platform Configuration Register values (PCR4, PCR7, PCR15)
+#### **EC2 Instance Attestation**
+- **Attestation Document Viewer**: Display and verify EC2 Instance attestation documents.
+- **PCR Measurements**: View Platform Configuration Register values (PCR4, PCR7, PCR12, PCR15 and others)
 - **Cryptographic Verification**: Validate attestation document signatures and certificates
 
-#### **TEE Environment**
+#### **Environment**
 - **Instance Metadata**: AWS EC2 instance information and IAM details
 - **GPU Information**: Available to aide in development and testing: NVIDIA GPU status, memory usage, and CUDA capabilities
 - **System Debug**: Available to aide in development and testing, system diagnostics, network status, and service health
@@ -41,7 +41,7 @@ This is a sample **Trusted Execution Environment (TPM-TEE)** application that sh
 ### Use Case
 Enables secure AI model sharing where:
 - **Model owners** can protect their intellectual property while making models available to their consumers.
-- **Model consumers** can verify they're running authentic models in a trusted environment that mitigates exfiltration of inputs to the model.
+- **Model consumers** can verify they're running authentic models in a isolated compute environment that mitigates exfiltration of inputs to the model.
 - **Both parties** maintain cryptographic proof of the execution environment's integrity without revealing each others secrets.
 
 This creates a foundation for secure multi-party collaboration in AI/ML scenarios without requiring either party to fully trust the other.
@@ -70,7 +70,7 @@ chmod +x ./dev_build/scripts/*.sh
 ### Create AWS IAM Role and instance profile
 Execute the following script that creates an IAM role to be used as the EC2 instance role. Carefully examine the permissions the policies in this role provide the EC2. For the purpose of this sample app functionality it should be at a minimum Amazon S3 bucket/object CRUD and AWS KMS GenerateDataKey, Decrypt, GetKeyPolicy, PutKeyPolicy, DescribeKey. S3 CreateBucket and KMS CreateKey is strictly not necessary if you do not intend to use that from the frontend. In addition attach the "AmazonSSMManagedInstanceCore" policy if you intend to interactively use this EC2 using AWS Systems manager session manager.
 ```bash
-dev_build/scripts/create_instance_profile.sh --role-name <tpm-tee-role> --profile-name <tpm-tee-profile> --bucket-name <replace-with-bucket-name>
+dev_build/scripts/create_instance_profile.sh --role-name <ec2-instance-role> --profile-name <ec2-instance-profile> --bucket-name <replace-with-bucket-name>
 ```
 
 ### Get Latest G5 AMI
@@ -90,7 +90,7 @@ Examine the script below and execute it to create a AWS KMS Key to test the fron
 > Note down the KMS Key ID. You would need it when using the MPC Application.
 
 ```bash
-./dev_build/scripts/create_kms_key.sh --instance-role <tpm-tee-role-arn-created-above> --region us-east-2
+./dev_build/scripts/create_kms_key.sh --instance-role <ec2-instance-role-arn-created-above> --region us-east-2
 ```
 
 ### Launch G5 Instance
@@ -197,10 +197,10 @@ Using the browser based UI start with
 7. Loading progress will show the detailed steps the backend is performing to mainly download the encrypted models, peform an attested decrypt using AWS KMS and the instance attestaiton document fetched using NitroTPM, extending the PCR15 TPM register with the model SHA384 hash and loading the model to ollama.
 
 ### LLM Model Consumer TAB -> Chat Interface TAB
-1. Notice under TEE Environment TAB -> GPU Information the current vram usage.
+1. Notice under Environment TAB -> GPU Information the current vram usage.
 2. Chat with the model and observe the usage again.
 
-### NitroTPM-TEE Attestation TAB
+### EC2 Instance Attestation TAB
 1. Observe various components of the attestation document.
 
 ## Security

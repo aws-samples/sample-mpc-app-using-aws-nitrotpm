@@ -567,7 +567,7 @@ function KMSManager() {
                 label="Principal ARN"
                 value={statementBuilder.principalArn}
                 onChange={(e) => setStatementBuilder(prev => ({ ...prev, principalArn: e.target.value }))}
-                placeholder="arn:aws:iam::123456789012:role/TPM-TEE-Role"
+                placeholder="arn:aws:iam::123456789012:role/EC2-Instance-Role"
                 helperText="Leave empty to use account root as principal"
               />
             </Grid>
