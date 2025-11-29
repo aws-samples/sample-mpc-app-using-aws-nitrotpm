@@ -27,7 +27,7 @@ function AboutPage() {
       
       <Paper sx={{ p: 3, mb: 4, backgroundColor: '#F8F9FA' }}>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.8, color: '#4A4A4A' }}>
-          This sample app demonstrates how two (or more) parties that intend to collaborate on a LLM based app can do so by leveraging a isolate compute environment enabled by EC2 Instance attestation.
+          This sample app demonstrates how two (or more) parties that intend to collaborate on a LLM based app can do so by leveraging an isolated compute environment enabled by EC2 Instance attestation.
         </Typography>
       </Paper>
       
@@ -175,7 +175,7 @@ function AboutPage() {
                       PCR Verification
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      Multi-layer verification including boot measurements (PCR4, PCR7) and model integrity (PCR15)
+                      Multi-layer verification including boot measurements (PCR4, PCR7, PCR12) and model integrity (PCR15)
                     </Typography>
                   </Box>
                 </Grid>
