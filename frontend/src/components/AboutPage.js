@@ -90,7 +90,7 @@ function AboutPage() {
               </Box>
               
               <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.6 }}>
-                Uses the Model Loader and Chat interface parts of the App, similar to Party A, they introspect the AEE and verify the attestation document before proceeding to trust the PCR measurements displayed.
+                Uses the Model Loader and Chat interface parts of the App, similar to Party A, they introspects the application, packaging recipe and verify the attestation document before proceeding to trust the PCR measurements displayed.
               </Typography>
               
               <Box sx={{ mb: 2 }}>

@@ -36,7 +36,7 @@ const FlowDiagram = () => {
 
     // Define links
     const links = [
-      { source: "partyA", target: "s3", label: "Encrypt & Upload", direction: "→" },
+      { source: "partyA", target: "S3", label: "Encrypt & Upload", direction: "→" },
       { source: "S3", target: "EC2", label: "Download & Decrypt", direction: "↘" },
       { source: "EC2", target: "partyB", label: "Attestation Verify", direction: "↗" },
       { source: "partyB", target: "chat", label: "Load Model", direction: "↓" },

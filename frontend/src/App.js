@@ -214,7 +214,7 @@ function App() {
       </TabPanel>
       
       <TabPanel value={primaryTab} index={4}>
-        {secondaryTab === 0 && <Environment />}
+        {secondaryTab === 0 && <TEEEnvironment />}
         {secondaryTab === 1 && <GPUInfo />}
         {secondaryTab === 2 && <DebugTab />}
       </TabPanel>
