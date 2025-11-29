@@ -111,7 +111,7 @@ function App() {
             </IconButton>
           </Box>
           <Typography variant="subtitle1" component="div" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-            Using NitroTPM based Trusted Execution Environment (TPM-TEE)
+            Using isolated compute environment enabled by EC2 Instance Attestation
           </Typography>
         </Toolbar>
       </AppBar>
@@ -130,8 +130,8 @@ function App() {
           <Tab label="About" />
           <Tab label="LLM Model Owner" />
           <Tab label="LLM Model Consumer" />
-          <Tab label="NitroTPM-TEE Attestation" />
-          <Tab label="TEE Environment" />
+          <Tab label="EC2 Instance Attestation" />
+          <Tab label="Environment" />
         </Tabs>
       </Box>
       

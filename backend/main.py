@@ -212,7 +212,7 @@ async def get_tpm_status():
 
 @app.get("/tee/environment")
 async def get_tee_environment():
-    """Get TEE environment information from instance metadata"""
+    """Get environment information from instance metadata"""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             # Get IMDSv2 token
@@ -265,7 +265,7 @@ async def get_tee_environment():
                 "architecture": identity_doc.get("architecture")
             }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get TEE environment info: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get EC2 environment info: {str(e)}")
 
 @app.get("/tee/gpu")
 async def get_gpu_info():
@@ -441,7 +441,7 @@ async def upload_model(request: ModelUploadRequest):
 
 @app.post("/models/load")
 async def load_model(request: ModelLoadRequest):
-    """Load model to Ollama and extend PCR16"""
+    """Load model to Ollama and extend PCR15"""
     try:
         result = model_manager.load_model_to_ollama(
             request.model_path,

@@ -105,11 +105,11 @@ class WebSocketManager:
                 "result": {"encrypted_path": download_result["encrypted_path"]}
             })
             
-            # Step 1: Decrypt model in TEE
+            # Step 1: Decrypt model
             await self.send_message(client_id, {
                 "type": "step_start",
                 "step": 1,
-                "message": "Starting decryption in TEE..."
+                "message": "Starting decryption ..."
             })
             
             # Sub-step 1: Generate key pair
@@ -166,7 +166,7 @@ class WebSocketManager:
                 "type": "sub_step_start",
                 "step": 1,
                 "sub_step": "decrypt_model",
-                "message": "4. Decrypting model weights inside TEE..."
+                "message": "4. Decrypting model weights..."
             })
             
             decrypt_result = await asyncio.get_event_loop().run_in_executor(
@@ -186,7 +186,7 @@ class WebSocketManager:
                 "type": "sub_step_complete",
                 "step": 1,
                 "sub_step": "decrypt_model",
-                "message": "4. Model weights decrypted inside TEE ✓"
+                "message": "4. Model weights decrypted ✓"
             })
             
             await self.send_message(client_id, {

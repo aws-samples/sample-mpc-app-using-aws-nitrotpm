@@ -32,8 +32,8 @@ import { useWebSocket } from '../contexts/WebSocketContext';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
 
 const steps = [
-  { id: 0, title: 'Download Encrypted Model to TEE', icon: <CloudDownload /> },
-  { id: 1, title: 'Decrypt Model in TEE', icon: <LockOpen /> },
+  { id: 0, title: 'Download Encrypted Model', icon: <CloudDownload /> },
+  { id: 1, title: 'Decrypt Model', icon: <LockOpen /> },
   { id: 2, title: 'Calculate Model Hash', icon: <Security /> },
   { id: 3, title: 'Load to Ollama', icon: <CloudUpload /> },
   { id: 4, title: 'Extend PCR15', icon: <Memory /> }

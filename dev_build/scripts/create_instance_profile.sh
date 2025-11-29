@@ -49,7 +49,7 @@ fi
 # Attach the TpmEkPub customer inline policy to the role
 aws iam put-role-policy \
   --role-name "$ROLE_NAME" \
-  --policy-name TpmTeeDemoPolicy \
+  --policy-name mpcAppDemoPolicy \
   --policy-document "{
   \"Version\": \"2012-10-17\",
   \"Statement\": [
